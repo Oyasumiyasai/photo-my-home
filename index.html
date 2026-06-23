@@ -9,47 +9,41 @@
         :root {
             --bg: #050505; --ink: #f5f5f2; --ink-dim: rgba(245,245,242,0.62);
             --glass: rgba(18,18,20,0.58); --glass-border: rgba(245,245,242,0.10);
-            --accent: #d9a35a; --accent-dim: rgba(217,163,90,0.35);
+            --accent: #d9a35a;
         }
-        body { margin: 0; background: var(--bg); height: 100vh; overflow: hidden; font-family: 'Inter', sans-serif; color: var(--ink); }
+        body { margin: 0; background: var(--bg); height: 100vh; overflow: hidden; font-family: 'Inter', sans-serif; color: var(--ink); cursor: default; }
         
-        /* スライドショー */
+        /* アイドル時の隠蔽設定 */
+        body.idle { cursor: none; }
+        body.idle #gear { opacity: 0; pointer-events: none; }
+
         .slider-img {
             width: 100vw; height: 100vh;
             background-size: contain; background-repeat: no-repeat; background-position: center;
             position: absolute; top: 0; left: 0;
-            transition: opacity 10s ease-in-out;
+            transition: opacity var(--fade-duration, 10s) ease-in-out;
             opacity: 0;
         }
-        .slider-img::after {
-            content:""; position:absolute; inset:0;
-            background:linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 32%);
-            pointer-events:none;
-        }
-
-        /* 時計 */
-        #clock-layer { position: fixed; left: 40px; bottom: 34px; z-index: 10; user-select: none; }
-        .time { font-family: 'Space Grotesk', sans-serif; font-weight: 300; font-size: 80px; line-height: 1; letter-spacing: 0.5px; display: flex; align-items: baseline; }
-        #seconds { font-size: 0.32em; font-weight: 500; color: var(--ink-dim); margin-left: 6px; }
-        .rule { width: 34px; height: 1px; background: var(--accent); margin: 10px 0 10px 2px; opacity: 0.85; }
-        .date { font-size: 17px; font-weight: 500; color: var(--ink-dim); }
-
-        /* 歯車アイコン */
+        
         #gear {
             position: absolute; top: 22px; right: 22px; z-index: 20;
             width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
             cursor: pointer; opacity: 0.4; transition: opacity 0.3s;
         }
         #gear:hover { opacity: 1; }
-        #gear svg { width: 24px; height: 24px; stroke: white; fill: none; }
+        #gear svg { width: 24px; height: 24px; stroke: white; }
 
-        /* 設定パネル */
-        #settings { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+        #clock-layer { position: fixed; left: 40px; bottom: 34px; z-index: 10; user-select: none; }
+        .time { font-family: 'Space Grotesk', sans-serif; font-weight: 300; font-size: 80px; display: flex; align-items: baseline; }
+        #seconds { font-size: 0.32em; color: var(--ink-dim); margin-left: 6px; }
+        .rule { width: 34px; height: 1px; background: var(--accent); margin: 10px 0; }
+        .date { font-size: 17px; color: var(--ink-dim); }
+
+        #settings { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
         #settings.open { display: flex; }
-        #panel { width: min(440px, 100%); background: #1a1a1c; border: 1px solid var(--glass-border); border-radius: 18px; padding: 30px; box-shadow: 0 30px 70px rgba(0,0,0,0.5); }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #444; border-radius: 9px; background: #000; color: #fff; box-sizing: border-box; }
-        button { background: var(--accent); color: #1a1208; border: none; padding: 12px 20px; border-radius: 9px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 10px; }
-        #closeBtn { background: rgba(255,255,255,0.1); color: var(--ink); }
+        #panel { width: min(440px, 100%); background: #1a1a1c; border-radius: 18px; padding: 30px; color: #fff; }
+        input { width: 100%; padding: 10px; margin: 8px 0 16px; background: #000; border: 1px solid #444; color: #fff; border-radius: 6px; }
+        button { background: var(--accent); border: none; padding: 12px; width: 100%; cursor: pointer; border-radius: 6px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -57,59 +51,64 @@
     <div id="slider2" class="slider-img"></div>
     
     <div id="gear" onclick="openSettings()">
-        <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3.2"></circle>
-            <path d="M19.4 13.5c.04-.5.04-1 0-1.5l2-1.6-2-3.4-2.4.8a7.6 7.6 0 0 0-1.3-.75L15 4.5h-4l-.4 2.6c-.46.2-.9.45-1.3.75l-2.4-.8-2 3.4 2 1.6c-.04.5-.04 1 0 1.5l-2 1.6 2 3.4 2.4-.8c.4.3.84.55 1.3.75l.4 2.6h4l.4-2.6c.46-.2.9-.45 1.3-.75l2.4.8 2-3.4-2-1.6Z"></path>
-        </svg>
+        <svg viewBox="0 0 24 24" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"></circle><path d="M19.4 13.5c.04-.5.04-1 0-1.5l2-1.6-2-3.4-2.4.8a7.6 7.6 0 0 0-1.3-.75L15 4.5h-4l-.4 2.6c-.46.2-.9.45-1.3.75l-2.4-.8-2 3.4 2 1.6c-.04.5-.04 1 0 1.5l-2 1.6 2 3.4 2.4-.8c.4.3.84.55 1.3.75l.4 2.6h4l.4-2.6c.46-.2.9-.45 1.3-.75l2.4.8 2-3.4-2-1.6Z"></path></svg>
     </div>
     
     <div id="clock-layer">
-        <div class="time">
-            <span id="hours-minutes">--:--</span><span id="seconds">00</span>
-        </div>
+        <div class="time"><span id="hm">--:--</span><span id="seconds">00</span></div>
         <div class="rule"></div>
-        <div class="date" id="dateText">----年--月--日（-）</div>
+        <div class="date" id="dateText">----年--月--日</div>
     </div>
 
-    <div id="settings" onclick="closeSettings()">
-        <div id="panel" onclick="event.stopPropagation()">
-            <h2>フォトフレーム設定</h2>
-            <input type="text" id="gasUrl" placeholder="GASのデプロイURL">
+    <div id="settings">
+        <div id="panel">
+            <h2>設定</h2>
+            <label>GAS URL</label><input type="text" id="gasUrl">
+            <label>表示時間(秒)</label><input type="number" id="displaySec" value="120">
+            <label>フェード時間(秒)</label><input type="number" id="fadeSec" value="10">
             <button onclick="saveAndStart()">保存して開始</button>
-            <button id="closeBtn" onclick="closeSettings()">閉じる</button>
         </div>
     </div>
 
     <script>
         let photos = [];
         let currentSlider = 1;
-        const s1 = document.getElementById('slider1');
-        const s2 = document.getElementById('slider2');
+        let slideInterval;
+        const s1 = document.getElementById('slider1'), s2 = document.getElementById('slider2');
+
+        // アイドル管理
+        let idleTimer;
+        function resetIdle() {
+            document.body.classList.remove('idle');
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => document.body.classList.add('idle'), 5000);
+        }
+        ['mousemove', 'click', 'keydown'].forEach(e => document.addEventListener(e, resetIdle));
 
         function updateClock() {
             const now = new Date();
-            const days = ['日','月','火','水','木','金','土'];
-            document.getElementById('dateText').innerText = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日（${days[now.getDay()]}）`;
-            document.getElementById('hours-minutes').innerText = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false });
+            document.getElementById('hm').innerText = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false });
             document.getElementById('seconds').innerText = now.getSeconds().toString().padStart(2, '0');
         }
         setInterval(updateClock, 1000);
-        updateClock();
 
         async function fetchPhotos() {
             const url = localStorage.getItem('gasUrl');
             if (!url) return;
-            try {
-                const res = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + new Date().getTime());
-                photos = await res.json();
-                if (photos.length > 0) startSlideshow();
-            } catch (e) { alert("取得エラー"); }
+            const res = await fetch(url + '?t=' + new Date().getTime());
+            photos = await res.json();
+            startSlideshow();
         }
 
         function startSlideshow() {
+            const display = parseInt(localStorage.getItem('displaySec') || 120);
+            const fade = parseInt(localStorage.getItem('fadeSec') || 10);
+            document.documentElement.style.setProperty('--fade-duration', fade + 's');
+
             s1.style.backgroundImage = `url('${photos[Math.floor(Math.random() * photos.length)]}')`;
             s1.style.opacity = 1;
-            setInterval(() => {
+
+            slideInterval = setInterval(() => {
                 const nextPhoto = photos[Math.floor(Math.random() * photos.length)];
                 if (currentSlider === 1) {
                     s2.style.backgroundImage = `url('${nextPhoto}')`;
@@ -120,17 +119,24 @@
                     s1.style.opacity = 1; s2.style.opacity = 0;
                     currentSlider = 1;
                 }
-            }, 130000); 
+            }, (display + fade) * 1000);
         }
 
-        function openSettings() { document.getElementById('settings').classList.add('open'); }
-        function closeSettings() { document.getElementById('settings').classList.remove('open'); }
+        function openSettings() {
+            document.getElementById('gasUrl').value = localStorage.getItem('gasUrl') || '';
+            document.getElementById('displaySec').value = localStorage.getItem('displaySec') || 120;
+            document.getElementById('fadeSec').value = localStorage.getItem('fadeSec') || 10;
+            document.getElementById('settings').classList.add('open');
+        }
+
         function saveAndStart() {
             localStorage.setItem('gasUrl', document.getElementById('gasUrl').value);
+            localStorage.setItem('displaySec', document.getElementById('displaySec').value);
+            localStorage.setItem('fadeSec', document.getElementById('fadeSec').value);
             location.reload();
         }
 
-        if (!localStorage.getItem('gasUrl')) document.getElementById('settings').classList.add('open');
+        if (!localStorage.getItem('gasUrl')) openSettings();
         else fetchPhotos();
     </script>
 </body>
