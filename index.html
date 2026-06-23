@@ -7,7 +7,6 @@
     <style>
         body { margin: 0; background: #000; height: 100vh; overflow: hidden; font-family: 'Helvetica Neue', Arial, sans-serif; }
         
-        /* 2つの画像を重ねてクロスフェードさせるためのコンテナ */
         .slider-img {
             width: 100vw; height: 100vh;
             background-size: contain; background-repeat: no-repeat; background-position: center;
@@ -58,8 +57,11 @@
         function updateClock() {
             const now = new Date();
             document.getElementById('date').innerText = now.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' });
+            
             const hm = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false });
-            const sec = now.toLocaleTimeString('ja-JP', { second: '2-digit' });
+            // 秒を2桁で取得 (padStartで0埋め)
+            const sec = now.getSeconds().toString().padStart(2, '0');
+            
             document.getElementById('hours-minutes').innerText = hm;
             document.getElementById('seconds').innerText = sec;
         }
@@ -77,7 +79,6 @@
         }
 
         function startSlideshow() {
-            // 初期画像セット
             s1.style.backgroundImage = `url('${photos[Math.floor(Math.random() * photos.length)]}')`;
             s1.style.opacity = 1;
 
