@@ -30,23 +30,22 @@
         #gear:hover { opacity: 1; }
         #gear svg { width: 24px; height: 24px; stroke: white; }
 
-        /* 時計・日付（背景固定・スタイリッシュ化） */
+        /* 時計・日付（背景を内容にフィット） */
         #clock-layer { 
             position: fixed; left: 30px; bottom: 30px; z-index: 10; user-select: none;
-            padding: 14px 24px; /* 上下幅を狭く */
+            padding: 16px 24px;
             background: rgba(0, 0, 0, 0.45);
             backdrop-filter: blur(8px);
             border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.08);
-            min-width: 320px; /* 幅を固定してチラつき防止 */
+            width: fit-content; /* ←ここが重要：中身に合わせて伸縮 */
         }
         .time { font-family: 'Space Grotesk', sans-serif; font-weight: 300; font-size: 72px; display: flex; align-items: baseline; }
         #seconds { 
             font-size: 0.4em; color: var(--ink-dim); margin-left: 10px; 
-            width: 60px; /* 秒数の幅を固定 */
-            font-variant-numeric: tabular-nums; /* 数字の幅を固定する設定 */
+            font-variant-numeric: tabular-nums;
         }
-        .rule { width: 30px; height: 1px; background: var(--accent); margin: 4px 0 6px 2px; }
+        .rule { width: 30px; height: 1px; background: var(--accent); margin: 2px 0 6px 2px; }
         .date { font-size: 15px; color: var(--ink-dim); letter-spacing: 0.5px; }
 
         /* 設定パネル */
@@ -98,7 +97,6 @@
             setInterval(updateClock, 1000);
             updateClock();
 
-            // アイドル制御
             let idleTimer;
             function resetIdle() {
                 document.body.classList.remove('idle');
