@@ -2,16 +2,17 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Cloud Photo Frame</title>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #050505; --ink: #f5f5f2; --ink-dim: rgba(245,245,242,0.62);
-            --glass: rgba(18,18,20,0.58); --glass-border: rgba(245,245,242,0.10);
             --accent: #d9a35a;
         }
         body { margin: 0; background: var(--bg); height: 100vh; overflow: hidden; font-family: 'Inter', sans-serif; color: var(--ink); cursor: default; }
+        
+        /* アイドル時の非表示設定 */
         body.idle { cursor: none; }
         body.idle #gear { opacity: 0; pointer-events: none; }
 
@@ -23,6 +24,7 @@
             opacity: 0;
         }
         
+        /* 歯車アイコン */
         #gear {
             position: absolute; top: 22px; right: 22px; z-index: 20;
             width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
@@ -31,17 +33,26 @@
         #gear:hover { opacity: 1; }
         #gear svg { width: 24px; height: 24px; stroke: white; }
 
-        #clock-layer { position: fixed; left: 40px; bottom: 34px; z-index: 10; user-select: none; }
+        /* 時計・日付（半透明黒背景＋すりガラス） */
+        #clock-layer { 
+            position: fixed; left: 30px; bottom: 30px; z-index: 10; user-select: none;
+            padding: 20px 30px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
         .time { font-family: 'Space Grotesk', sans-serif; font-weight: 300; font-size: 80px; display: flex; align-items: baseline; }
         #seconds { font-size: 0.32em; color: var(--ink-dim); margin-left: 6px; }
-        .rule { width: 34px; height: 1px; background: var(--accent); margin: 10px 0; }
+        .rule { width: 34px; height: 1px; background: var(--accent); margin: 8px 0; }
         .date { font-size: 17px; color: var(--ink-dim); }
 
+        /* 設定パネル */
         #settings { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
         #settings.open { display: flex; }
         #panel { width: min(440px, 100%); background: #1a1a1c; border-radius: 18px; padding: 30px; color: #fff; }
-        input { width: 100%; padding: 10px; margin: 8px 0 16px; background: #000; border: 1px solid #444; color: #fff; border-radius: 6px; }
-        button { background: var(--accent); border: none; padding: 12px; width: 100%; cursor: pointer; border-radius: 6px; font-weight: bold; }
+        input { width: 100%; padding: 10px; margin: 8px 0 16px; background: #000; border: 1px solid #444; color: #fff; border-radius: 6px; box-sizing: border-box; }
+        button { background: var(--accent); border: none; padding: 12px; width: 100%; cursor: pointer; border-radius: 6px; font-weight: bold; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -65,41 +76,41 @@
             <label>表示時間(秒)</label><input type="number" id="displaySec" value="120">
             <label>フェード時間(秒)</label><input type="number" id="fadeSec" value="10">
             <button onclick="saveAndStart()">保存して開始</button>
+            <button onclick="toggleFullScreen()" style="background:#444; color:#fff;">全画面表示切り替え</button>
         </div>
     </div>
 
     <script>
-        // DOM構築完了後に実行
         window.addEventListener('DOMContentLoaded', () => {
             let photos = [];
             let currentSlider = 1;
             const s1 = document.getElementById('slider1'), s2 = document.getElementById('slider2');
 
-            // 時計の更新処理
+            // 時計更新
             function updateClock() {
-                try {
-                    const now = new Date();
-                    const days = ['日','月','火','水','木','金','土'];
-                    const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 (${days[now.getDay()]})`;
-                    const hmStr = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false });
-                    const secStr = now.getSeconds().toString().padStart(2, '0');
-                    
-                    document.getElementById('dateText').innerText = dateStr;
-                    document.getElementById('hm').innerText = hmStr;
-                    document.getElementById('seconds').innerText = secStr;
-                } catch(e) { console.error("時計更新エラー:", e); }
+                const now = new Date();
+                const days = ['日','月','火','水','木','金','土'];
+                document.getElementById('dateText').innerText = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 (${days[now.getDay()]})`;
+                document.getElementById('hm').innerText = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false });
+                document.getElementById('seconds').innerText = now.getSeconds().toString().padStart(2, '0');
             }
             setInterval(updateClock, 1000);
             updateClock();
 
-            // アイドル管理
+            // アイドル制御
             let idleTimer;
             function resetIdle() {
                 document.body.classList.remove('idle');
                 clearTimeout(idleTimer);
                 idleTimer = setTimeout(() => document.body.classList.add('idle'), 5000);
             }
-            ['mousemove', 'click', 'keydown'].forEach(e => document.addEventListener(e, resetIdle));
+            ['mousemove', 'click', 'keydown', 'touchstart'].forEach(e => document.addEventListener(e, resetIdle));
+
+            // 全画面制御
+            window.toggleFullScreen = function() {
+                if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+                else document.exitFullscreen();
+            }
 
             async function fetchPhotos() {
                 const url = localStorage.getItem('gasUrl');
@@ -108,7 +119,7 @@
                     const res = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + new Date().getTime());
                     photos = await res.json();
                     if (photos && photos.length > 0) startSlideshow();
-                } catch (e) { console.error("写真取得エラー", e); }
+                } catch (e) { console.error(e); }
             }
 
             function startSlideshow() {
