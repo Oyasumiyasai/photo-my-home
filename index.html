@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <style>
+        body { margin: 0; background: black; height: 100vh; overflow: hidden; }
+        #slider { width: 100vw; height: 100vh; background-size: cover; background-position: center; transition: opacity 2s; } /* 2sでフェード */
+        #settings { position: absolute; top: 10px; left: 10px; background: white; padding: 10px; display: none; }
+    </style>
+</head>
+<body>
+    <div id="slider"></div>
+    <div id="settings">
+        URL: <input type="text" id="urlInput"><br>
+        秒数: <input type="number" id="speedInput" value="5">秒<br>
+        <button onclick="saveSettings()">保存して開始</button>
+    </div>
+
+    <script>
+        const slider = document.getElementById('slider');
+        
+        function saveSettings() {
+            localStorage.setItem('photoUrl', document.getElementById('urlInput').value);
+            localStorage.setItem('speed', document.getElementById('speedInput').value);
+            location.reload();
+        }
+
+        const savedUrl = localStorage.getItem('photoUrl');
+        const speed = localStorage.getItem('speed') || 5;
+
+        if (!savedUrl) {
+            document.getElementById('settings').style.display = 'block';
+        } else {
+            // ここでスライドショー開始処理
+            // ※外部サイト埋め込みより、画像配列を読み込む方が安定します
+            setInterval(() => { /* 画像切り替えロジック */ }, speed * 1000);
+        }
+    </script>
+</body>
+</html>
