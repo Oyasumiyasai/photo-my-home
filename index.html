@@ -1,39 +1,99 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire HD Photo Frame</title>
     <style>
-        body { margin: 0; background: black; height: 100vh; overflow: hidden; }
-        #slider { width: 100vw; height: 100vh; background-size: cover; background-position: center; transition: opacity 2s; } /* 2sでフェード */
-        #settings { position: absolute; top: 10px; left: 10px; background: white; padding: 10px; display: none; }
+        body { margin: 0; background: #000; height: 100vh; overflow: hidden; font-family: sans-serif; }
+        #slider { width: 100vw; height: 100vh; background-size: cover; background-position: center; transition: opacity 1.5s; opacity: 1; }
+        #clock-layer { position: fixed; bottom: 30px; left: 30px; color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.8); pointer-events: none; }
+        #time { font-size: 64px; font-weight: bold; }
+        #date { font-size: 24px; opacity: 0.8; }
+        #setup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 30px; border-radius: 15px; z-index: 100; display: none; width: 80%; max-width: 500px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { background: #333; color: #fff; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%; }
     </style>
 </head>
 <body>
     <div id="slider"></div>
-    <div id="settings">
-        URL: <input type="text" id="urlInput"><br>
-        秒数: <input type="number" id="speedInput" value="5">秒<br>
-        <button onclick="saveSettings()">保存して開始</button>
+    <div id="clock-layer">
+        <div id="date"></div>
+        <div id="time"></div>
+    </div>
+
+    <div id="setup">
+        <h3>設定：フォトフレーム</h3>
+        <p>GASのデプロイURLを入力してください：</p>
+        <input type="text" id="gasUrl" placeholder="https://script.google.com/macros/s/...">
+        <p>切替秒数：</p>
+        <input type="number" id="speed" value="10">
+        <button onclick="saveAndStart()">保存して開始</button>
     </div>
 
     <script>
+        let photos = [];
+        let index = 0;
         const slider = document.getElementById('slider');
-        
-        function saveSettings() {
-            localStorage.setItem('photoUrl', document.getElementById('urlInput').value);
-            localStorage.setItem('speed', document.getElementById('speedInput').value);
+
+        function updateClock() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+            const timeStr = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false });
+            document.getElementById('date').innerText = dateStr;
+            document.getElementById('time').innerText = timeStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        async function fetchPhotos() {
+            const url = localStorage.getItem('gasUrl');
+            if (!url) return;
+            try {
+                const res = await fetch(url);
+                photos = await res.json();
+                startSlideshow();
+            } catch (e) {
+                alert("データの取得に失敗しました。URLを確認してください。");
+            }
+        }
+
+        function startSlideshow() {
+            const speed = (localStorage.getItem('speed') || 10) * 1000;
+            const change = () => {
+                if (photos.length === 0) return;
+                slider.style.opacity = 0;
+                setTimeout(() => {
+                    slider.style.backgroundImage = `url(${photos[index]})`;
+                    slider.style.opacity = 1;
+                    index = (index + 1) % photos.length;
+                }, 1500); // フェードアウト後に切り替え
+            };
+            change();
+            setInterval(change, speed);
+        }
+
+        function saveAndStart() {
+            localStorage.setItem('gasUrl', document.getElementById('gasUrl').value);
+            localStorage.setItem('speed', document.getElementById('speed').value);
             location.reload();
         }
 
-        const savedUrl = localStorage.getItem('photoUrl');
-        const speed = localStorage.getItem('speed') || 5;
-
-        if (!savedUrl) {
-            document.getElementById('settings').style.display = 'block';
+        if (!localStorage.getItem('gasUrl')) {
+            document.getElementById('setup').style.display = 'block';
         } else {
-            // ここでスライドショー開始処理
-            // ※外部サイト埋め込みより、画像配列を読み込む方が安定します
-            setInterval(() => { /* 画像切り替えロジック */ }, speed * 1000);
+            fetchPhotos();
         }
+        
+        // 画面をタップしたら設定をリセットできる隠し機能
+        slider.onclick = () => {
+            if(confirm("設定をやり直しますか？")) {
+                localStorage.clear();
+                location.reload();
+            }
+        };
     </script>
 </body>
 </html>
+
+Fire HDでのデジタルフォトフレーム構築、成功をお祈りしています！何か進捗で詰まることがあれば、いつでもお知らせください。
