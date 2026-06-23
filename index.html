@@ -4,9 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cloud Photo Frame</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background: #000; height: 100vh; overflow: hidden; font-family: 'Helvetica Neue', Arial, sans-serif; }
+        :root {
+            --bg: #050505; --ink: #f5f5f2; --ink-dim: rgba(245,245,242,0.62);
+            --glass: rgba(18,18,20,0.58); --glass-border: rgba(245,245,242,0.10);
+            --accent: #d9a35a; --accent-dim: rgba(217,163,90,0.35);
+        }
+        body { margin: 0; background: var(--bg); height: 100vh; overflow: hidden; font-family: 'Inter', sans-serif; color: var(--ink); }
         
+        /* 2枚重ねのクロスフェード用スライド */
         .slider-img {
             width: 100vw; height: 100vh;
             background-size: contain; background-repeat: no-repeat; background-position: center;
@@ -14,21 +21,27 @@
             transition: opacity 10s ease-in-out;
             opacity: 0;
         }
-        
-        #clock-layer { 
-            position: fixed; bottom: 40px; left: 40px; color: #fff; 
-            pointer-events: none; z-index: 10; text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        /* 写真上の薄いグラデーション */
+        .slider-img::after {
+            content:""; position:absolute; inset:0;
+            background:linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 32%);
+            pointer-events:none;
         }
-        #date { font-size: 24px; font-weight: 300; opacity: 0.7; margin-bottom: 5px; }
-        #time { 
-            font-size: 80px; font-weight: 200; letter-spacing: 2px;
-            display: flex; align-items: baseline;
-        }
-        #seconds { font-size: 40px; margin-left: 10px; opacity: 0.6; font-weight: 300; }
 
-        #setup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: #fff; padding: 40px; border-radius: 20px; z-index: 100; display: none; width: 80%; max-width: 400px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #444; border-radius: 8px; background: #222; color: #fff; box-sizing: border-box; }
-        button { background: #fff; color: #000; border: none; padding: 15px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; }
+        /* 時計デザイン */
+        #clock-layer { position: fixed; left: 40px; bottom: 34px; z-index: 10; user-select: none; }
+        .time { font-family: 'Space Grotesk', sans-serif; font-weight: 300; font-size: 80px; line-height: 1; letter-spacing: 0.5px; display: flex; align-items: baseline; }
+        #seconds { font-size: 0.32em; font-weight: 500; color: var(--ink-dim); margin-left: 6px; }
+        .rule { width: 34px; height: 1px; background: var(--accent); margin: 10px 0 10px 2px; opacity: 0.85; }
+        .date { font-size: 17px; font-weight: 500; color: var(--ink-dim); }
+
+        /* 設定パネル */
+        #settings { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+        #settings.open { display: flex; }
+        #panel { width: min(440px, 100%); background: #1a1a1c; border: 1px solid var(--glass-border); border-radius: 18px; padding: 30px; box-shadow: 0 30px 70px rgba(0,0,0,0.5); }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #444; border-radius: 9px; background: #000; color: #fff; box-sizing: border-box; }
+        button { background: var(--accent); color: #1a1208; border: none; padding: 12px 20px; border-radius: 9px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 10px; }
+        #closeBtn { background: rgba(255,255,255,0.1); color: var(--ink); }
     </style>
 </head>
 <body>
@@ -36,16 +49,20 @@
     <div id="slider2" class="slider-img"></div>
     
     <div id="clock-layer">
-        <div id="date"></div>
-        <div id="time">
-            <span id="hours-minutes"></span><span id="seconds"></span>
+        <div class="time">
+            <span id="hours-minutes">--:--</span><span id="seconds">00</span>
         </div>
+        <div class="rule"></div>
+        <div class="date" id="dateText">----年--月--日（-）</div>
     </div>
 
-    <div id="setup">
-        <h3>初期設定</h3>
-        <input type="text" id="gasUrl" placeholder="GASのデプロイURL">
-        <button onclick="saveAndStart()">保存して開始</button>
+    <div id="settings" onclick="closeSettings()">
+        <div id="panel" onclick="event.stopPropagation()">
+            <h2>フォトフレーム設定</h2>
+            <input type="text" id="gasUrl" placeholder="GASのデプロイURL">
+            <button onclick="saveAndStart()">保存して開始</button>
+            <button id="closeBtn" onclick="closeSettings()">閉じる</button>
+        </div>
     </div>
 
     <script>
@@ -56,14 +73,10 @@
 
         function updateClock() {
             const now = new Date();
-            document.getElementById('date').innerText = now.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' });
-            
-            const hm = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false });
-            // 秒を2桁で取得 (padStartで0埋め)
-            const sec = now.getSeconds().toString().padStart(2, '0');
-            
-            document.getElementById('hours-minutes').innerText = hm;
-            document.getElementById('seconds').innerText = sec;
+            const days = ['日','月','火','水','木','金','土'];
+            document.getElementById('dateText').innerText = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日（${days[now.getDay()]}）`;
+            document.getElementById('hours-minutes').innerText = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false });
+            document.getElementById('seconds').innerText = now.getSeconds().toString().padStart(2, '0');
         }
         setInterval(updateClock, 1000);
         updateClock();
@@ -81,35 +94,32 @@
         function startSlideshow() {
             s1.style.backgroundImage = `url('${photos[Math.floor(Math.random() * photos.length)]}')`;
             s1.style.opacity = 1;
-
             setInterval(() => {
                 const nextPhoto = photos[Math.floor(Math.random() * photos.length)];
                 if (currentSlider === 1) {
                     s2.style.backgroundImage = `url('${nextPhoto}')`;
-                    s2.style.opacity = 1;
-                    s1.style.opacity = 0;
+                    s2.style.opacity = 1; s1.style.opacity = 0;
                     currentSlider = 2;
                 } else {
                     s1.style.backgroundImage = `url('${nextPhoto}')`;
-                    s1.style.opacity = 1;
-                    s2.style.opacity = 0;
+                    s1.style.opacity = 1; s2.style.opacity = 0;
                     currentSlider = 1;
                 }
-            }, 130000); // 120秒表示 + 10秒フェード
+            }, 130000); 
         }
 
+        function closeSettings() { document.getElementById('settings').classList.remove('open'); }
         function saveAndStart() {
             localStorage.setItem('gasUrl', document.getElementById('gasUrl').value);
             location.reload();
         }
 
-        if (!localStorage.getItem('gasUrl')) {
-            document.getElementById('setup').style.display = 'block';
-        } else {
-            fetchPhotos();
-        }
-        
-        document.body.onclick = () => { if(confirm("設定リセットしますか？")) { localStorage.clear(); location.reload(); } };
+        // 初期設定画面表示
+        if (!localStorage.getItem('gasUrl')) document.getElementById('settings').classList.add('open');
+        else fetchPhotos();
+
+        // 画面クリックで設定へ（またはアイドル時隠すなど拡張可能）
+        window.addEventListener('keydown', (e) => { if(e.key === 's') document.getElementById('settings').classList.add('open'); });
     </script>
 </body>
 </html>
