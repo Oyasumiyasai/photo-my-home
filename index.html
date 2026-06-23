@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cloud Photo Frame</title>
     <style>
         body { margin: 0; background: #000; height: 100vh; overflow: hidden; font-family: 'Helvetica Neue', Arial, sans-serif; }
@@ -9,20 +10,23 @@
         #slider { 
             width: 100vw; height: 100vh; 
             background-size: contain; background-repeat: no-repeat; background-position: center; 
-            position: absolute; transition: opacity 10s ease-in-out; /* クロスフェード10秒 */
+            position: absolute; transition: opacity 10s ease-in-out; 
             opacity: 0; 
         }
         
-        /* スタイリッシュな時計デザイン */
         #clock-layer { 
             position: fixed; bottom: 40px; left: 40px; color: #fff; 
-            pointer-events: none; z-index: 10;
+            pointer-events: none; z-index: 10; text-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
-        #time { font-size: 80px; font-weight: 200; letter-spacing: 2px; }
         #date { font-size: 24px; font-weight: 300; opacity: 0.7; margin-bottom: 5px; }
+        #time { 
+            font-size: 80px; font-weight: 200; letter-spacing: 2px;
+            display: flex; align-items: baseline;
+        }
+        #seconds { font-size: 40px; margin-left: 10px; opacity: 0.6; font-weight: 300; }
 
-        #setup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: #fff; padding: 40px; border-radius: 20px; z-index: 100; display: none; width: 80%; max-width: 400px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #444; border-radius: 8px; background: #222; color: #fff; }
+        #setup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: #fff; padding: 40px; border-radius: 20px; z-index: 100; display: none; width: 80%; max-width: 400px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #444; border-radius: 8px; background: #222; color: #fff; box-sizing: border-box; }
         button { background: #fff; color: #000; border: none; padding: 15px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; }
     </style>
 </head>
@@ -30,7 +34,9 @@
     <div id="slider"></div>
     <div id="clock-layer">
         <div id="date"></div>
-        <div id="time"></div>
+        <div id="time">
+            <span id="hours-minutes"></span><span id="seconds"></span>
+        </div>
     </div>
 
     <div id="setup">
@@ -44,11 +50,15 @@
         let index = 0;
         const slider = document.getElementById('slider');
 
-        // 秒まで表示する時計
         function updateClock() {
             const now = new Date();
             document.getElementById('date').innerText = now.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' });
-            document.getElementById('time').innerText = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+            
+            const hm = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const sec = now.toLocaleTimeString('ja-JP', { second: '2-digit' });
+            
+            document.getElementById('hours-minutes').innerText = hm;
+            document.getElementById('seconds').innerText = sec;
         }
         setInterval(updateClock, 1000);
         updateClock();
@@ -56,25 +66,28 @@
         async function fetchPhotos() {
             const url = localStorage.getItem('gasUrl');
             if (!url) return;
-            const res = await fetch(url + '?t=' + new Date().getTime());
-            photos = await res.json();
-            startSlideshow();
+            try {
+                const res = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + new Date().getTime());
+                photos = await res.json();
+                if (photos.length > 0) startSlideshow();
+            } catch (e) {
+                alert("データの取得に失敗しました。URLを確認してください。");
+            }
         }
 
         function startSlideshow() {
-            // 写真表示120秒、クロスフェード10秒
             const change = () => {
                 slider.style.opacity = 0;
                 setTimeout(() => {
                     slider.style.backgroundImage = `url('${photos[index]}')`;
                     slider.style.opacity = 1;
                     index = (index + 1) % photos.length;
-                }, 10000); // フェード開始
+                }, 10000); // 10秒かけてクロスフェード
             };
             
-            // 初回実行
             change();
-            setInterval(change, 130000); // 120秒表示 + 10秒フェード = 130秒周期
+            // 120秒表示 + 10秒フェード = 130秒周期
+            setInterval(change, 130000); 
         }
 
         function saveAndStart() {
@@ -87,6 +100,8 @@
         } else {
             fetchPhotos();
         }
+
+        slider.onclick = () => { if(confirm("設定をやり直しますか？")) { localStorage.clear(); location.reload(); } };
     </script>
 </body>
 </html>
