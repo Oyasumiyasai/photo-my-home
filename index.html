@@ -47,7 +47,6 @@
 
     <script>
         let photos = [];
-        let index = 0;
         const slider = document.getElementById('slider');
 
         function updateClock() {
@@ -79,9 +78,10 @@
             const change = () => {
                 slider.style.opacity = 0;
                 setTimeout(() => {
-                    slider.style.backgroundImage = `url('${photos[index]}')`;
+                    // ランダムに写真を選択
+                    const randomPhoto = photos[Math.floor(Math.random() * photos.length)];
+                    slider.style.backgroundImage = `url('${randomPhoto}')`;
                     slider.style.opacity = 1;
-                    index = (index + 1) % photos.length;
                 }, 10000); // 10秒かけてクロスフェード
             };
             
