@@ -12,8 +12,6 @@
             --accent: #d9a35a;
         }
         body { margin: 0; background: var(--bg); height: 100vh; overflow: hidden; font-family: 'Inter', sans-serif; color: var(--ink); cursor: default; }
-        
-        /* アイドル時の隠蔽設定 */
         body.idle { cursor: none; }
         body.idle #gear { opacity: 0; pointer-events: none; }
 
@@ -71,73 +69,87 @@
     </div>
 
     <script>
-        let photos = [];
-        let currentSlider = 1;
-        let slideInterval;
-        const s1 = document.getElementById('slider1'), s2 = document.getElementById('slider2');
+        // DOM構築完了後に実行
+        window.addEventListener('DOMContentLoaded', () => {
+            let photos = [];
+            let currentSlider = 1;
+            const s1 = document.getElementById('slider1'), s2 = document.getElementById('slider2');
 
-        // アイドル管理
-        let idleTimer;
-        function resetIdle() {
-            document.body.classList.remove('idle');
-            clearTimeout(idleTimer);
-            idleTimer = setTimeout(() => document.body.classList.add('idle'), 5000);
-        }
-        ['mousemove', 'click', 'keydown'].forEach(e => document.addEventListener(e, resetIdle));
+            // 時計の更新処理
+            function updateClock() {
+                try {
+                    const now = new Date();
+                    const days = ['日','月','火','水','木','金','土'];
+                    const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 (${days[now.getDay()]})`;
+                    const hmStr = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false });
+                    const secStr = now.getSeconds().toString().padStart(2, '0');
+                    
+                    document.getElementById('dateText').innerText = dateStr;
+                    document.getElementById('hm').innerText = hmStr;
+                    document.getElementById('seconds').innerText = secStr;
+                } catch(e) { console.error("時計更新エラー:", e); }
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
 
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('hm').innerText = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false });
-            document.getElementById('seconds').innerText = now.getSeconds().toString().padStart(2, '0');
-        }
-        setInterval(updateClock, 1000);
+            // アイドル管理
+            let idleTimer;
+            function resetIdle() {
+                document.body.classList.remove('idle');
+                clearTimeout(idleTimer);
+                idleTimer = setTimeout(() => document.body.classList.add('idle'), 5000);
+            }
+            ['mousemove', 'click', 'keydown'].forEach(e => document.addEventListener(e, resetIdle));
 
-        async function fetchPhotos() {
-            const url = localStorage.getItem('gasUrl');
-            if (!url) return;
-            const res = await fetch(url + '?t=' + new Date().getTime());
-            photos = await res.json();
-            startSlideshow();
-        }
+            async function fetchPhotos() {
+                const url = localStorage.getItem('gasUrl');
+                if (!url) return;
+                try {
+                    const res = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + new Date().getTime());
+                    photos = await res.json();
+                    if (photos && photos.length > 0) startSlideshow();
+                } catch (e) { console.error("写真取得エラー", e); }
+            }
 
-        function startSlideshow() {
-            const display = parseInt(localStorage.getItem('displaySec') || 120);
-            const fade = parseInt(localStorage.getItem('fadeSec') || 10);
-            document.documentElement.style.setProperty('--fade-duration', fade + 's');
+            function startSlideshow() {
+                const display = parseInt(localStorage.getItem('displaySec') || 120);
+                const fade = parseInt(localStorage.getItem('fadeSec') || 10);
+                document.documentElement.style.setProperty('--fade-duration', fade + 's');
 
-            s1.style.backgroundImage = `url('${photos[Math.floor(Math.random() * photos.length)]}')`;
-            s1.style.opacity = 1;
+                s1.style.backgroundImage = `url('${photos[Math.floor(Math.random() * photos.length)]}')`;
+                s1.style.opacity = 1;
 
-            slideInterval = setInterval(() => {
-                const nextPhoto = photos[Math.floor(Math.random() * photos.length)];
-                if (currentSlider === 1) {
-                    s2.style.backgroundImage = `url('${nextPhoto}')`;
-                    s2.style.opacity = 1; s1.style.opacity = 0;
-                    currentSlider = 2;
-                } else {
-                    s1.style.backgroundImage = `url('${nextPhoto}')`;
-                    s1.style.opacity = 1; s2.style.opacity = 0;
-                    currentSlider = 1;
-                }
-            }, (display + fade) * 1000);
-        }
+                setInterval(() => {
+                    const nextPhoto = photos[Math.floor(Math.random() * photos.length)];
+                    if (currentSlider === 1) {
+                        s2.style.backgroundImage = `url('${nextPhoto}')`;
+                        s2.style.opacity = 1; s1.style.opacity = 0;
+                        currentSlider = 2;
+                    } else {
+                        s1.style.backgroundImage = `url('${nextPhoto}')`;
+                        s1.style.opacity = 1; s2.style.opacity = 0;
+                        currentSlider = 1;
+                    }
+                }, (display + fade) * 1000);
+            }
 
-        function openSettings() {
-            document.getElementById('gasUrl').value = localStorage.getItem('gasUrl') || '';
-            document.getElementById('displaySec').value = localStorage.getItem('displaySec') || 120;
-            document.getElementById('fadeSec').value = localStorage.getItem('fadeSec') || 10;
-            document.getElementById('settings').classList.add('open');
-        }
+            window.openSettings = function() {
+                document.getElementById('gasUrl').value = localStorage.getItem('gasUrl') || '';
+                document.getElementById('displaySec').value = localStorage.getItem('displaySec') || 120;
+                document.getElementById('fadeSec').value = localStorage.getItem('fadeSec') || 10;
+                document.getElementById('settings').classList.add('open');
+            }
 
-        function saveAndStart() {
-            localStorage.setItem('gasUrl', document.getElementById('gasUrl').value);
-            localStorage.setItem('displaySec', document.getElementById('displaySec').value);
-            localStorage.setItem('fadeSec', document.getElementById('fadeSec').value);
-            location.reload();
-        }
+            window.saveAndStart = function() {
+                localStorage.setItem('gasUrl', document.getElementById('gasUrl').value);
+                localStorage.setItem('displaySec', document.getElementById('displaySec').value);
+                localStorage.setItem('fadeSec', document.getElementById('fadeSec').value);
+                location.reload();
+            }
 
-        if (!localStorage.getItem('gasUrl')) openSettings();
-        else fetchPhotos();
+            if (!localStorage.getItem('gasUrl')) window.openSettings();
+            else fetchPhotos();
+        });
     </script>
 </body>
 </html>
